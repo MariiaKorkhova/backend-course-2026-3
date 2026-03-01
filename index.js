@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 
 const program = new Command();
 
@@ -7,6 +7,8 @@ program
     .option('-i, --input <path>', 'Path to the file for reading (required)')
     .option('-o, --output <path>', 'Path to the file for writing into (not required)')
     .option('-d, --display', 'Show output in the console (not required)')
+    .option('-s, --survived', 'Show only survived passengers (not required)')
+    .option('-a, --age', 'Show passengers age (not required)');
 
 program.parse();
 const options = program.opts();
@@ -25,7 +27,38 @@ if (!options.display && !options.output) {
     process.exit(0);
 }
 
-const finalOutput = "Test of -o -d -i";
+const rawData = readFileSync(options.input, 'utf-8');
+
+const passengers = rawData
+    .split('\n')
+    .filter(line => line.trim() !== '')
+    .map(line => JSON.parse(line));
+
+let resultLines = [];
+
+passengers.forEach(passenger => {
+    if (options.survived) {
+        if (passenger.Survived !== "1") return;
+    }
+
+    let lineElements = [];
+
+    if (passenger.Name) {
+        lineElements.push(passenger.Name);
+    }
+
+    if (options.age && passenger.Age) {
+        lineElements.push(passenger.Age);
+    }
+
+    if (passenger.Ticket) {
+        lineElements.push(passenger.Ticket);
+    }
+
+    resultLines.push(lineElements.join(' '));
+});
+
+const finalOutput = resultLines.join('\n');
 
 if (options.display) {
     console.log(finalOutput);
